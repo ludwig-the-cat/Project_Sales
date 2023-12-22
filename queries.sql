@@ -2,7 +2,7 @@
 SELECT COUNT(*) AS customers_count FROM customers;
 --Шаг №5, задание 1
 -- Возвращаем конкатенацию имени и фамилии, подстчет всех операций и суммарную выручку
-SELECT CONCAT(first_name, ' ', last_name) AS name, COUNT(sales_person_id) AS operations, FLOOR(SUM(sales.quantity * price)) AS income
+SELECT CONCAT(first_name, ' ', last_name) AS name, COUNT(sales_person_id) AS operations, ROUND(SUM(sales.quantity * price)) AS income
 FROM sales
 -- Так как у нас ограничение по первым десяти, то можем использовать два LEFT JOIN
 -- но если бы было необходимо показать всех сотрудник, я бы использовал RIGHT
@@ -20,7 +20,7 @@ LIMIT 10;
 --Шаг №5, задание 2
 --Второй отчет содержит информацию о продавцах, чья средняя выручка за сделку меньше средней выручки за сделку по всем продавцам. Таблица отсортирована по выручке по возрастанию.
 -- Сделаем выборку по имени и фамилии и посчтием средний доход
-SELECT CONCAT(first_name, ' ', last_name) AS name, ROUND(AVG(sales.quantity * price)) AS average_income 
+SELECT CONCAT(first_name, ' ', last_name) AS name, FLOOR(AVG(sales.quantity * price)) AS average_income 
 FROM sales
 LEFT JOIN employees ON
 sales_person_id = employee_id
@@ -31,26 +31,30 @@ GROUP BY first_name, last_name
 -- Общую среднюю выручку вычисляем использую подзапрос
 HAVING AVG(sales.quantity * price) < (SELECT AVG(sales.quantity * products.price) FROM sales JOIN products ON sales.product_id = products.product_id)  
 ORDER BY average_income ASC;
---Шаг №5, задание 3
+---Шаг №5, задание 3
 --Третий отчет содержит информацию о выручке по дням недели. Каждая запись содержит имя и фамилию продавца, день недели и суммарную выручку.
 --Используем функцию to_char со значением 'day' чтобы вывести название дня
-SELECT CONCAT(first_name, ' ', last_name) AS name, to_char(sale_date, 'day') AS weekday, ROUND(SUM(sales.quantity * price), 0) AS income 
+select name, weekday, income 
+from
+(SELECT CONCAT(first_name, ' ', last_name) AS name, to_char(sale_date, 'day') AS weekday, ROUND(SUM(sales.quantity * price), 0) AS income,
+EXTRACT(isodow from sale_date) as n
 FROM sales
 LEFT JOIN employees ON
 sales_person_id = employee_id
 LEFT JOIN products ON
 sales.product_id = products.product_id
-GROUP BY sale_date, first_name, last_name;
+GROUP BY to_char(sale_date, 'day'), CONCAT(first_name, ' ', last_name), EXTRACT(isodow from sale_date)) as t1
+order by n, name;
 --Шаг №6 задание 1
 --Первый отчет - количество покупателей в разных возрастных группах: 16-25, 26-40 и 40+.
-SELECT age_range, COUNT(*)
+SELECT age_category, COUNT(*)
 FROM (SELECT CASE
 WHEN age BETWEEN 16 AND 25 THEN '16-25'
 WHEN age BETWEEN 26 AND 40 THEN '26-40'
 ELSE '40+'
-END AS age_range FROM customers) AS age_range
-GROUP BY age_range
-ORDER BY age_range 
+END AS age_category FROM customers) AS age_category
+GROUP BY age_category
+ORDER BY age_category
 --Шаг №6 задача 2
 --Во втором отчете предоставьте данные по количеству уникальных покупателей и выручке, которую они принесли.
 select distinct date, 
