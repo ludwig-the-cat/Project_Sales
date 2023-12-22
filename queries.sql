@@ -57,15 +57,14 @@ GROUP BY age_category
 ORDER BY age_category
 --Шаг №6 задача 2
 --Во втором отчете предоставьте данные по количеству уникальных покупателей и выручке, которую они принесли.
-select distinct date, 
-count(customer_id) over(partition by date) as total_customers, 
-sum(quantity * price) OVER(partition by date) as income 
-from (select *, to_char(sale_date, 'YYYY-MM') as date from sales
-join products on sales.product_id = products.product_id) as t
-group by date, customer_id, quantity, price
-order by date
---Третий отчет следует составить о покупателях, первая покупка которых была в ходе проведения акций (акционные товары отпускали со стоимостью равной 0)
-select concat(c.first_name, ' ', c.last_name)  as customer, s.sale_date, concat(e.first_name, ' ', e.last_name) as seller
+select to_char(sale_date, 'YYYY-MM') as date, count( distinct customer_id) as total_customers, round(sum(quantity * price)) as income
+from sales join products on sales.product_id = products.product_id 
+group by to_char(sale_date, 'YYYY-MM')
+order by to_char(sale_date, 'YYYY-MM');
+--следует составить о покупателях, первая покупка которых была в ходе проведения акций (акционные товары отпускали со стоимостью равной 0)
+--используем distinct on чтобы показать первую строку из выборки
+select distinct on(s.customer_id)
+concat(c.first_name, ' ', c.last_name)  as customer, s.sale_date, concat(e.first_name, ' ', e.last_name) as seller
 from customers c 
 left join sales s 
 on c.customer_id = s.customer_id
@@ -74,3 +73,4 @@ on s.sales_person_id = e.employee_id
 left join products p 
 on s.product_id = p.product_id
 where price = 0
+order by s.customer_id
